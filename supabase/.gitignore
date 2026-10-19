@@ -1,0 +1,11 @@
+# Supabase
+.branches
+.temp
+
+# CLI credentials (never commit)
+.env
+
+# dotenvx
+.env.keys
+.env.local
+.env.*.local

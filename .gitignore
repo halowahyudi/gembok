@@ -1,0 +1,70 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# environment / secrets — only .env.example may be committed
+.env
+.env.*
+!.env.example
+
+# additional credentials & signing material (NEVER commit)
+*.keystore
+credentials.json
+google-services.json
+GoogleService-Info.plist
+service-account*.json
+
+# local Supabase
+supabase/.temp/
+supabase/.branches/
+
+# internal docs (not committed, not bundled/uploaded)
+docs/
+
+# typescript
+*.tsbuildinfo
+
+# generated native folders
+/ios
+/android
+
+# build artifacts
+*.apk
+*.aab
+
+# local native module build output (never commit)
+modules/*/android/build/
+modules/*/android/.gradle/
+modules/*/android/.cxx/
+modules/*/android/local.properties
+modules/*/ios/build/
+modules/*/ios/Pods/
+modules/*/ios/*.xcworkspace

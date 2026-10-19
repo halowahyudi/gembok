@@ -1,0 +1,9 @@
+{
+  "platforms": ["android", "ios"],
+  "android": {
+    "modules": ["expo.modules.gembokcrypto.GembokCryptoModule"]
+  },
+  "ios": {
+    "modules": ["GembokCryptoModule"]
+  }
+}
