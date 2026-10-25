@@ -10,6 +10,9 @@ import { useVaultStore } from '@/vault/store';
 // Lock after this long with no interaction while the app is open.
 const IDLE_TIMEOUT_MS = 2 * 60 * 1000;
 
+// Lock after this long while the app is in the background.
+const BACKGROUND_TIMEOUT_MS = 1 * 60 * 1000;
+
 function lockNow(): void {
   // Skip while a biometric prompt or system dialog (e.g. camera permission) is
   // in front of the app.
@@ -25,6 +28,8 @@ function lockNow(): void {
 export function AutoLock({ children }: { children: ReactNode }) {
   const appState = useRef(AppState.currentState);
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const backgroundTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const backgroundTimestamp = useRef<number | null>(null);
 
   usePreventScreenCapture('gembok-vault');
 
@@ -33,14 +38,36 @@ export function AutoLock({ children }: { children: ReactNode }) {
     idleTimer.current = setTimeout(lockNow, IDLE_TIMEOUT_MS);
   }, []);
 
+  const clearBackgroundTimer = useCallback(() => {
+    if (backgroundTimer.current) {
+      clearTimeout(backgroundTimer.current);
+      backgroundTimer.current = null;
+    }
+  }, []);
+
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (next) => {
       const previous = appState.current;
       appState.current = next;
-      // Only react to a real background transition; 'inactive' happens during
-      // the biometric prompt and system dialogs.
+
+      // When backgrounded, start the 1-minute grace period.
       if (next === 'background' && previous !== 'background') {
-        lockNow();
+        backgroundTimestamp.current = Date.now();
+        clearBackgroundTimer();
+        backgroundTimer.current = setTimeout(() => {
+          lockNow();
+        }, BACKGROUND_TIMEOUT_MS);
+      } else if (next === 'active' && previous !== 'active') {
+        // App resumed: check if the grace period has elapsed.
+        clearBackgroundTimer();
+        if (backgroundTimestamp.current !== null) {
+          const elapsed = Date.now() - backgroundTimestamp.current;
+          backgroundTimestamp.current = null;
+          if (elapsed >= BACKGROUND_TIMEOUT_MS) {
+            lockNow();
+          }
+        }
+        resetIdleTimer();
       }
     });
 
@@ -48,8 +75,9 @@ export function AutoLock({ children }: { children: ReactNode }) {
     return () => {
       subscription.remove();
       if (idleTimer.current) clearTimeout(idleTimer.current);
+      clearBackgroundTimer();
     };
-  }, [resetIdleTimer]);
+  }, [clearBackgroundTimer, resetIdleTimer]);
 
   return (
     <View

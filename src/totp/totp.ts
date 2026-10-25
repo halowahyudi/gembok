@@ -3,6 +3,8 @@ import { sha1 } from '@noble/hashes/legacy.js';
 import { sha256, sha512 } from '@noble/hashes/sha2.js';
 import { base32nopad } from '@scure/base';
 
+import { parseGoogleMigrationUri } from './google-migration';
+
 export type TotpAlgorithm = 'SHA1' | 'SHA256' | 'SHA512';
 
 const HASHES = { SHA1: sha1, SHA256: sha256, SHA512: sha512 } as const;
@@ -70,10 +72,26 @@ export type OtpAuthData = {
   period: number;
 };
 
-// Parse an otpauth:// URI without relying on the URL polyfill. Handles the
-// common form: otpauth://totp/Issuer:account?secret=...&issuer=...
+// Parse an otpauth:// or otpauth-migration:// URI without relying on the URL polyfill.
+// Handles the common form: otpauth://totp/Issuer:account?secret=...&issuer=...
+// as well as Google Authenticator migration URIs.
 export function parseOtpAuthUri(uri: string): OtpAuthData {
   const trimmed = uri.trim();
+  if (/^otpauth-migration:\/\//i.test(trimmed)) {
+    const migration = parseGoogleMigrationUri(trimmed);
+    const first = migration[0];
+    if (!first) throw new Error('INVALID_OTP_URI');
+    return {
+      type: 'totp',
+      issuer: first.title,
+      account: first.username,
+      secret: first.secret,
+      algorithm: first.algorithm,
+      digits: first.digits,
+      period: first.period,
+    };
+  }
+
   if (!/^otpauth:\/\//i.test(trimmed)) {
     throw new Error('INVALID_OTP_URI');
   }

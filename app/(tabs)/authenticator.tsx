@@ -44,7 +44,9 @@ export default function AuthenticatorTab() {
       <View style={{ flex: 1, padding: theme.spacing.lg, gap: theme.spacing.lg }}>
         <View style={{ gap: 4 }}>
           <NeoText variant="display">Authenticator</NeoText>
-          <NeoText color={theme.colors.muted}>Kode 2FA Anda.</NeoText>
+          <NeoText color={theme.colors.muted}>
+            Kode 2FA Anda. Tahan kode untuk menyalinnya.
+          </NeoText>
         </View>
 
         {showNudge ? (
@@ -75,13 +77,21 @@ export default function AuthenticatorTab() {
           </NeoCard>
         ) : null}
 
-        <NeoButton
-          title="+ Authenticator"
-          fullWidth
-          onPress={() =>
-            router.push({ pathname: '/item/new', params: { mode: 'authenticator' } })
-          }
-        />
+        <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+          <NeoButton
+            title="+ Authenticator"
+            style={{ flex: 1 }}
+            onPress={() =>
+              router.push({ pathname: '/item/new', params: { mode: 'authenticator' } })
+            }
+          />
+          <NeoButton
+            title="Impor & Ekspor"
+            variant="surface"
+            style={{ flex: 1 }}
+            onPress={() => router.push('/authenticator-transfer')}
+          />
+        </View>
 
         {error ? <NeoNotice title="Gagal memuat" message={error} /> : null}
 

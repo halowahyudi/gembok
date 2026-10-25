@@ -1,6 +1,6 @@
 {
   "name": "gembok",
-  "version": "0.1.0",
+  "version": "1.2.0",
   "main": "expo-router/entry",
   "private": true,
   "scripts": {
@@ -42,6 +42,7 @@
     "expo-sqlite": "~57.0.3",
     "expo-status-bar": "~57.0.1",
     "expo-system-ui": "~57.0.4",
+    "qrcode-generator": "^2.0.4",
     "react": "19.2.3",
     "react-dom": "^19.2.3",
     "react-native": "0.86.3",
