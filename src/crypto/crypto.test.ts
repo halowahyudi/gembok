@@ -237,3 +237,50 @@ test('full signup and unlock flow reconstructs the same userKey', async () => {
   assert.deepEqual(unwrapUserKey(sealed, unlock.encMasterKey), userKey);
   assert.deepEqual(unlock.authSecret, signup.authSecret);
 });
+
+test('account recovery rotates secret key, updates verifier, and rewraps userKey', async () => {
+  const salt = randomBytes(32);
+  const userKey = generateUserKey();
+  const initialSecretKey = generateSecretKey();
+  const initialVerifier = deriveSecretKeyVerifier(initialSecretKey);
+
+  const { entropy, mnemonic } = generateRecoveryPhrase();
+  const recoveryEncKey = deriveRecoveryEncKey(entropy);
+  const protectedUserKeyRecovery = wrapUserKeyForRecovery(userKey, recoveryEncKey);
+
+  // User recovers account with mnemonic
+  const recoveredRecoveryKey = deriveRecoveryEncKey(recoveryPhraseToEntropy(mnemonic));
+  const recoveredUserKey = unwrapUserKeyFromRecovery(protectedUserKeyRecovery, recoveredRecoveryKey);
+  assert.deepEqual(recoveredUserKey, userKey);
+
+  // Fresh secret key and new password generated during recovery
+  const newSecretKey = generateSecretKey();
+  const newPassword = 'new-password-456';
+  const newVerifier = deriveSecretKeyVerifier(newSecretKey);
+
+  assert.notDeepEqual(initialVerifier, newVerifier);
+
+  // Re-wrap userKey with new credentials
+  const newAccountKeys = await deriveAccountKeys({
+    kdf: jsKdf,
+    password: newPassword,
+    salt,
+    secretKey: newSecretKey,
+    params: TEST_KDF_PARAMS,
+  });
+  const newProtectedUserKey = wrapUserKey(recoveredUserKey, newAccountKeys.encMasterKey);
+
+  // Subsequent login with new credentials succeeds against new verifier and unwraps userKey
+  assert.deepEqual(deriveSecretKeyVerifier(newSecretKey), newVerifier);
+  assert.notDeepEqual(deriveSecretKeyVerifier(newSecretKey), initialVerifier);
+
+  const loginKeys = await deriveAccountKeys({
+    kdf: jsKdf,
+    password: newPassword,
+    salt,
+    secretKey: newSecretKey,
+    params: TEST_KDF_PARAMS,
+  });
+  const unlockedUserKey = unwrapUserKey(newProtectedUserKey, loginKeys.encMasterKey);
+  assert.deepEqual(unlockedUserKey, userKey);
+});

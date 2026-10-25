@@ -2,7 +2,11 @@ import { bytesToBase64, bytesToHex, zeroize } from '@/crypto/bytes';
 import { packSealed, unpackSealed } from '@/crypto/cipher';
 import { getCryptoCore } from '@/crypto/core';
 import { DEFAULT_KDF_PARAMS, type KdfParams } from '@/crypto/kdf';
-import { encodeSecretKey, generateSecretKey } from '@/crypto/keys';
+import {
+  deriveSecretKeyVerifier,
+  encodeSecretKey,
+  generateSecretKey,
+} from '@/crypto/keys';
 import { recoveryPhraseToEntropy } from '@/crypto/recovery';
 import { byteaToBytes, bytesToBytea } from '@/db/codec';
 import { normalizeEmail } from '@/lib/validation';
@@ -63,6 +67,10 @@ export async function recoverAccount(input: {
 
   const newSecretKey = generateSecretKey();
   const encodedSecretKey = encodeSecretKey(newSecretKey);
+  const secretKeyVerifier = deriveSecretKeyVerifier(newSecretKey);
+  const newSecretKeyVerifier = bytesToBytea(secretKeyVerifier);
+  zeroize(secretKeyVerifier);
+
   const { authSecret, protectedUserKey } = await core.rewrapCurrentKey({
     password: input.newPassword,
     secretKey: newSecretKey,
@@ -76,7 +84,13 @@ export async function recoverAccount(input: {
   const newProtectedUserKey = bytesToBytea(packSealed(protectedUserKey));
 
   const { data: fnData, error: fnError } = await supabase.functions.invoke('recover-account', {
-    body: { email, recoveryAuthHash, newAuthSecret: authPassword, newProtectedUserKey },
+    body: {
+      email,
+      recoveryAuthHash,
+      newAuthSecret: authPassword,
+      newProtectedUserKey,
+      newSecretKeyVerifier,
+    },
   });
   if (fnError) throw fnError;
   if (fnData && typeof fnData === 'object' && 'error' in fnData) {
@@ -91,6 +105,15 @@ export async function recoverAccount(input: {
 
   const userId = signIn.user?.id;
   if (!userId) throw new Error('SIGNIN_FAILED');
+
+  const { error: profileUpdateError } = await supabase
+    .from('profiles')
+    .update({
+      secret_key_verifier: newSecretKeyVerifier,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('user_id', userId);
+  if (profileUpdateError) throw profileUpdateError;
 
   const { data: vault, error: vaultError } = await supabase
     .from('vaults')

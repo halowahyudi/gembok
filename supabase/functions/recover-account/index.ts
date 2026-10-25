@@ -2,10 +2,11 @@
 // phrase via a stored hash, then rotates the auth password and the wrapped
 // userKey. Deploy with --no-verify-jwt; the caller is unauthenticated by design.
 //
-// Body: { email, recoveryAuthHash, newAuthSecret, newProtectedUserKey }
-//   recoveryAuthHash   hex string (from the 24-word phrase)
-//   newAuthSecret      base64 derived auth secret (becomes the auth password)
-//   newProtectedUserKey bytea hex string ("\x...")
+// Body: { email, recoveryAuthHash, newAuthSecret, newProtectedUserKey, newSecretKeyVerifier }
+//   recoveryAuthHash     hex string (from the 24-word phrase)
+//   newAuthSecret        base64 derived auth secret (becomes the auth password)
+//   newProtectedUserKey  bytea hex string ("\x...")
+//   newSecretKeyVerifier bytea hex string ("\x...") (optional for backwards compatibility)
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -53,6 +54,8 @@ Deno.serve(async (req) => {
     const newAuthSecret = typeof body?.newAuthSecret === 'string' ? body.newAuthSecret : '';
     const newProtectedUserKey =
       typeof body?.newProtectedUserKey === 'string' ? body.newProtectedUserKey : '';
+    const newSecretKeyVerifier =
+      typeof body?.newSecretKeyVerifier === 'string' ? body.newSecretKeyVerifier : null;
 
     if (!email || !recoveryAuthHash || !newAuthSecret || !newProtectedUserKey) {
       return json({ error: 'MISSING_FIELDS' }, 400);
@@ -86,12 +89,17 @@ Deno.serve(async (req) => {
     });
     if (authError) throw authError;
 
+    const profileUpdates: Record<string, unknown> = {
+      protected_user_key: newProtectedUserKey,
+      updated_at: new Date().toISOString(),
+    };
+    if (newSecretKeyVerifier) {
+      profileUpdates.secret_key_verifier = newSecretKeyVerifier;
+    }
+
     const { error: updateError } = await admin
       .from('profiles')
-      .update({
-        protected_user_key: newProtectedUserKey,
-        updated_at: new Date().toISOString(),
-      })
+      .update(profileUpdates)
       .eq('user_id', userId);
     if (updateError) throw updateError;
 
