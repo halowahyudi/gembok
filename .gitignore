@@ -47,7 +47,7 @@ supabase/.temp/
 supabase/.branches/
 
 # internal docs (not committed, not bundled/uploaded)
-docs/
+/docs/
 
 # typescript
 *.tsbuildinfo
@@ -71,4 +71,4 @@ modules/*/ios/*.xcworkspace
 
 # internal files (not committed, not bundled)
 AGENTS.md
-store/
+/store/
