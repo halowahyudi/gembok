@@ -68,3 +68,7 @@ modules/*/android/local.properties
 modules/*/ios/build/
 modules/*/ios/Pods/
 modules/*/ios/*.xcworkspace
+
+# internal files (not committed, not bundled)
+AGENTS.md
+store/
