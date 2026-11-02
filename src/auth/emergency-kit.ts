@@ -31,6 +31,9 @@ export function formatSecretKeyInput(value: string): string {
 // Plain-text Emergency Kit the user copies or writes down. Kept pure so the
 // content is easy to test.
 export function buildEmergencyKitText(data: EmergencyKitData): string {
+  const mnemonicLine =
+    data.recoveryMnemonic.trim() ||
+    '(Tetap sama seperti pada Kit Darurat awal Anda — jangan hapus catatan 24 kata Anda sebelumnya)';
   return [
     'GEMBOK - KIT DARURAT',
     '',
@@ -42,7 +45,7 @@ export function buildEmergencyKitText(data: EmergencyKitData): string {
     `Kunci Keamanan: ${formatSecretKey(data.secretKey)}`,
     '',
     'Frasa Pemulihan (24 kata):',
-    data.recoveryMnemonic,
+    mnemonicLine,
     '',
   ].join('\n');
 }

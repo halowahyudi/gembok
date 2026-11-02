@@ -7,7 +7,7 @@ import {
   encodeSecretKey,
   generateSecretKey,
 } from '@/crypto/keys';
-import { recoveryPhraseToEntropy } from '@/crypto/recovery';
+import { normalizeRecoveryMnemonic, recoveryPhraseToEntropy } from '@/crypto/recovery';
 import { byteaToBytes, bytesToBytea } from '@/db/codec';
 import { normalizeEmail } from '@/lib/validation';
 
@@ -40,7 +40,7 @@ export async function recoverAccount(input: {
   newPassword: string;
 }): Promise<RecoverResult> {
   const email = normalizeEmail(input.email);
-  const mnemonic = input.mnemonic.trim().replace(/\s+/g, ' ');
+  const mnemonic = normalizeRecoveryMnemonic(input.mnemonic);
 
   const entropy = recoveryPhraseToEntropy(mnemonic);
   const core = getCryptoCore();
@@ -48,21 +48,32 @@ export async function recoverAccount(input: {
 
   const supabase = getSupabase();
   const { data, error } = await supabase.rpc('get_recovery_blob', { p_email: email });
-  if (error) throw error;
+  if (error) {
+    zeroize(entropy);
+    throw error;
+  }
 
   const blob = (Array.isArray(data) ? data[0] : data) as RecoveryBlob | undefined;
-  if (!blob) throw new Error('ACCOUNT_NOT_FOUND');
+  if (!blob) {
+    zeroize(entropy);
+    throw new Error('ACCOUNT_NOT_FOUND');
+  }
 
   const salt = byteaToBytes(blob.kdf_salt);
   const params = blob.kdf_params ?? DEFAULT_KDF_PARAMS;
 
   // Opens userKey in the core; a wrong phrase fails the AEAD tag here.
-  await core.openVaultWithRecovery({
-    recoveryEntropy: entropy,
-    protectedUserKeyRecovery: unpackSealed(
-      byteaToBytes(blob.protected_user_key_recovery),
-    ),
-  });
+  try {
+    await core.openVaultWithRecovery({
+      recoveryEntropy: entropy,
+      protectedUserKeyRecovery: unpackSealed(
+        byteaToBytes(blob.protected_user_key_recovery),
+      ),
+    });
+  } catch {
+    zeroize(entropy);
+    throw new Error('INVALID_RECOVERY');
+  }
   zeroize(entropy);
 
   const newSecretKey = generateSecretKey();
@@ -92,7 +103,16 @@ export async function recoverAccount(input: {
       newSecretKeyVerifier,
     },
   });
-  if (fnError) throw fnError;
+  if (fnError) {
+    const context = (fnError as { context?: { json?: () => Promise<unknown> } }).context;
+    if (context && typeof context.json === 'function') {
+      const errBody = await context.json().catch(() => null);
+      if (errBody && typeof errBody === 'object' && 'error' in errBody) {
+        throw new Error(String((errBody as { error: unknown }).error));
+      }
+    }
+    throw fnError;
+  }
   if (fnData && typeof fnData === 'object' && 'error' in fnData) {
     throw new Error(String((fnData as { error: unknown }).error));
   }
@@ -152,14 +172,22 @@ export async function enableRecovery(input: { mnemonic: string }): Promise<void>
     .select('protected_user_key_recovery')
     .eq('user_id', userId)
     .single();
-  if (profileError) throw profileError;
+  if (profileError) {
+    zeroize(entropy);
+    throw profileError;
+  }
 
-  await core.openVaultWithRecovery({
-    recoveryEntropy: entropy,
-    protectedUserKeyRecovery: unpackSealed(
-      byteaToBytes(profile.protected_user_key_recovery as string),
-    ),
-  });
+  try {
+    await core.openVaultWithRecovery({
+      recoveryEntropy: entropy,
+      protectedUserKeyRecovery: unpackSealed(
+        byteaToBytes(profile.protected_user_key_recovery as string),
+      ),
+    });
+  } catch {
+    zeroize(entropy);
+    throw new Error('INVALID_RECOVERY');
+  }
   const recoveryAuthHash = await core.deriveRecoveryAuthHash(entropy);
   zeroize(entropy);
 

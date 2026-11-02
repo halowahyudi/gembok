@@ -187,15 +187,23 @@ export async function unlockAccount(input: {
     .select('protected_user_key, recovery_auth_hash')
     .eq('user_id', userId)
     .single();
-  if (profileError) throw profileError;
+  if (profileError) {
+    zeroize(secretKey);
+    throw profileError;
+  }
 
-  await core.openVault({
-    password: input.password,
-    secretKey,
-    salt,
-    params,
-    protectedUserKey: unpackSealed(byteaToBytes(profile.protected_user_key as string)),
-  });
+  try {
+    await core.openVault({
+      password: input.password,
+      secretKey,
+      salt,
+      params,
+      protectedUserKey: unpackSealed(byteaToBytes(profile.protected_user_key as string)),
+    });
+  } catch {
+    zeroize(secretKey);
+    throw new Error('INVALID_PASSWORD');
+  }
   zeroize(secretKey);
 
   const { data: vault, error: vaultError } = await supabase
@@ -243,23 +251,40 @@ export async function changePassword(input: {
 
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('kdf_salt, kdf_params, protected_user_key')
+    .select('kdf_salt, kdf_params, protected_user_key, secret_key_verifier')
     .eq('user_id', userId)
     .single();
-  if (profileError) throw profileError;
+  if (profileError) {
+    zeroize(secretKey);
+    throw profileError;
+  }
+
+  if (profile.secret_key_verifier) {
+    const expected = byteaToBytes(profile.secret_key_verifier as string);
+    const actual = deriveSecretKeyVerifier(secretKey);
+    if (!timingSafeEqual(expected, actual)) {
+      zeroize(secretKey);
+      throw new Error('INVALID_SECRET_KEY');
+    }
+  }
 
   const salt = byteaToBytes(profile.kdf_salt as string);
   const params = (profile.kdf_params as KdfParams | null) ?? DEFAULT_KDF_PARAMS;
   const core = getCryptoCore();
 
   // Open the vault with the current password to prove ownership and load userKey.
-  await core.openVault({
-    password: input.currentPassword,
-    secretKey,
-    salt,
-    params,
-    protectedUserKey: unpackSealed(byteaToBytes(profile.protected_user_key as string)),
-  });
+  try {
+    await core.openVault({
+      password: input.currentPassword,
+      secretKey,
+      salt,
+      params,
+      protectedUserKey: unpackSealed(byteaToBytes(profile.protected_user_key as string)),
+    });
+  } catch {
+    zeroize(secretKey);
+    throw new Error('INVALID_PASSWORD');
+  }
   zeroize(secretKey);
 
   const useNewSecretKey = input.newSecretKey ?? false;

@@ -94,9 +94,7 @@ export default function ChangePasswordScreen() {
       });
       setSuccess(true);
     } catch (e) {
-      console.error('[gembok] change password failed:', e);
-      const raw = e instanceof Error ? e.message : String(e);
-      setError(`${authErrorMessage(e)} [${raw}]`);
+      setError(authErrorMessage(e));
     } finally {
       setBusy(false);
     }

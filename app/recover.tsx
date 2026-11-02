@@ -4,7 +4,8 @@ import { View } from 'react-native';
 
 import { authErrorMessage } from '@/auth/errors';
 import { recoverAccount } from '@/auth/recovery';
-import { enrollBiometric, isBiometricSupported } from '@/device/biometric';
+import { normalizeRecoveryMnemonic } from '@/crypto/recovery';
+import { clearBiometric, enrollBiometric, isBiometricSupported } from '@/device/biometric';
 import {
   MIN_MASTER_PASSWORD_LENGTH,
   isValidEmail,
@@ -22,12 +23,14 @@ import {
   NeoText,
   useTheme,
 } from '@/theme';
+import { useVaultStore } from '@/vault/store';
 
 export default function Recover() {
   const theme = useTheme();
   const router = useRouter();
   const setEmergencyKit = useOnboardingStore((s) => s.setEmergencyKit);
   const unlock = useSessionStore((s) => s.unlock);
+  const clearVault = useVaultStore((s) => s.clear);
 
   const [email, setEmail] = useState('');
   const [mnemonic, setMnemonic] = useState('');
@@ -42,7 +45,8 @@ export default function Recover() {
       setError('Masukkan alamat email yang valid.');
       return;
     }
-    if (mnemonic.trim().split(/\s+/).length !== 24) {
+    const cleanedMnemonic = normalizeRecoveryMnemonic(mnemonic);
+    if (cleanedMnemonic.split(' ').filter(Boolean).length !== 24) {
       setError('Frasa pemulihan harus 24 kata.');
       return;
     }
@@ -64,10 +68,11 @@ export default function Recover() {
     try {
       const result = await recoverAccount({
         email,
-        mnemonic,
+        mnemonic: cleanedMnemonic,
         newPassword: password,
       });
       if (await isBiometricSupported()) {
+        await clearBiometric().catch(() => undefined);
         await enrollBiometric({
           userId: result.userId,
           email: result.email,
@@ -79,6 +84,7 @@ export default function Recover() {
         secretKey: result.secretKey,
         recoveryMnemonic: result.recoveryMnemonic,
       });
+      clearVault();
       unlock({
         email: result.email,
         userId: result.userId,

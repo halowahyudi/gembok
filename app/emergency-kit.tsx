@@ -31,7 +31,7 @@ export default function EmergencyKit() {
 
   if (!kit) return null;
 
-  const words = kit.recoveryMnemonic.split(' ');
+  const words = kit.recoveryMnemonic.trim().split(/\s+/).filter(Boolean);
 
   const copyAll = async () => {
     await Clipboard.setStringAsync(buildEmergencyKitText(kit));
@@ -66,33 +66,42 @@ export default function EmergencyKit() {
       <NeoCard accent={theme.colors.purple}>
         <View style={{ gap: 12 }}>
           <NeoTag label="FRASA PEMULIHAN" color={theme.colors.purple} />
-          <NeoText color={theme.colors.muted}>
-            Kunci cadangan Anda. Dipakai kalau suatu saat lupa kata sandi utama. Tanpa
-            frasa ini, isi brankas tidak dapat dibuka lagi.
-          </NeoText>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {words.map((word, index) => (
-              <View
-                key={`${index}-${word}`}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 6,
-                  borderWidth: 2,
-                  borderColor: theme.colors.ink,
-                  borderRadius: theme.radius.sm,
-                  paddingHorizontal: 8,
-                  paddingVertical: 4,
-                  backgroundColor: theme.colors.surface,
-                }}
-              >
-                <NeoText variant="caption" color={theme.colors.muted}>
-                  {index + 1}
-                </NeoText>
-                <NeoText variant="label">{word}</NeoText>
+          {words.length > 0 ? (
+            <>
+              <NeoText color={theme.colors.muted}>
+                Kunci cadangan Anda. Dipakai kalau suatu saat lupa kata sandi utama. Tanpa
+                frasa ini, isi brankas tidak dapat dibuka lagi.
+              </NeoText>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {words.map((word, index) => (
+                  <View
+                    key={`${index}-${word}`}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 6,
+                      borderWidth: 2,
+                      borderColor: theme.colors.ink,
+                      borderRadius: theme.radius.sm,
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      backgroundColor: theme.colors.surface,
+                    }}
+                  >
+                    <NeoText variant="caption" color={theme.colors.muted}>
+                      {index + 1}
+                    </NeoText>
+                    <NeoText variant="label">{word}</NeoText>
+                  </View>
+                ))}
               </View>
-            ))}
-          </View>
+            </>
+          ) : (
+            <NeoText color={theme.colors.muted}>
+              Frasa pemulihan 24 kata Anda tetap sama dan tidak berubah. Jangan hapus
+              catatan 24 kata dari Kit Darurat awal Anda.
+            </NeoText>
+          )}
         </View>
       </NeoCard>
 

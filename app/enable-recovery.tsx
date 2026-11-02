@@ -4,6 +4,7 @@ import { View } from 'react-native';
 
 import { authErrorMessage } from '@/auth/errors';
 import { enableRecovery } from '@/auth/recovery';
+import { normalizeRecoveryMnemonic } from '@/crypto/recovery';
 import { clearRecoveryNudge } from '@/device/recovery-nudge';
 import { useSessionStore } from '@/store/session';
 import {
@@ -27,13 +28,14 @@ export default function EnableRecovery() {
 
   const submit = async () => {
     setError(null);
-    if (mnemonic.trim().split(/\s+/).length !== 24) {
+    const cleanedMnemonic = normalizeRecoveryMnemonic(mnemonic);
+    if (cleanedMnemonic.split(' ').filter(Boolean).length !== 24) {
       setError('Frasa pemulihan harus 24 kata.');
       return;
     }
     setBusy(true);
     try {
-      await enableRecovery({ mnemonic });
+      await enableRecovery({ mnemonic: cleanedMnemonic });
       markRecoveryEnabled();
       await clearRecoveryNudge();
       router.replace('/authenticator');

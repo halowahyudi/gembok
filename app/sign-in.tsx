@@ -106,9 +106,7 @@ export default function SignIn() {
       }
       openVault(result);
     } catch (e) {
-      console.error('[gembok] login failed:', e);
-      const raw = e instanceof Error ? e.message : String(e);
-      setError(`${authErrorMessage(e)} [${raw}]`);
+      setError(authErrorMessage(e));
     } finally {
       setBusy(false);
     }

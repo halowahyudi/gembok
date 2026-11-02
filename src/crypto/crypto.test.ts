@@ -23,7 +23,11 @@ import {
   wrapUserKeyForRecovery,
 } from './keys';
 import { randomBytes } from './random';
-import { generateRecoveryPhrase, recoveryPhraseToEntropy } from './recovery';
+import {
+  generateRecoveryPhrase,
+  normalizeRecoveryMnemonic,
+  recoveryPhraseToEntropy,
+} from './recovery';
 
 const subtle = globalThis.crypto.subtle;
 
@@ -177,7 +181,34 @@ test('recovery phrase has 24 words and round-trips to entropy', () => {
   assert.equal(entropy.length, 32);
   assert.equal(mnemonic.split(' ').length, 24);
   assert.deepEqual(recoveryPhraseToEntropy(mnemonic), entropy);
-  assert.throws(() => recoveryPhraseToEntropy('not a valid phrase'));
+  assert.throws(() => recoveryPhraseToEntropy('not a valid phrase'), /INVALID_RECOVERY/);
+});
+
+test('normalizeRecoveryMnemonic handles uppercase, numbering, and full Emergency Kit text', () => {
+  const { entropy, mnemonic } = generateRecoveryPhrase();
+  const words = mnemonic.split(' ');
+
+  // Uppercase and multiline
+  const messy = `  ${words.slice(0, 12).join('   ').toUpperCase()}\n${words.slice(12).join('  ')}  `;
+  assert.equal(normalizeRecoveryMnemonic(messy), mnemonic);
+  assert.deepEqual(recoveryPhraseToEntropy(messy), entropy);
+
+  // Numbered list ("1. word1 2. word2 ...")
+  const numbered = words.map((w, i) => `${i + 1}. ${w}`).join(' ');
+  assert.equal(normalizeRecoveryMnemonic(numbered), mnemonic);
+  assert.deepEqual(recoveryPhraseToEntropy(numbered), entropy);
+
+  // Full Emergency Kit text paste
+  const kitText = [
+    'GEMBOK - KIT DARURAT',
+    '',
+    'Email: user@example.com',
+    'Kunci Keamanan: ABCD-EFGH-IJKL-MNOP',
+    'Frasa Pemulihan (24 kata):',
+    mnemonic,
+  ].join('\n');
+  assert.equal(normalizeRecoveryMnemonic(kitText), mnemonic);
+  assert.deepEqual(recoveryPhraseToEntropy(kitText), entropy);
 });
 
 test('userKey wraps and unwraps for recovery', () => {

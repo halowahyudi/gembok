@@ -21,15 +21,29 @@ export function generateRecoveryPhrase(): RecoveryPhrase {
   return { entropy, mnemonic: entropyToMnemonic(entropy, wordlist) };
 }
 
-function normalize(mnemonic: string): string {
-  return mnemonic.trim().toLowerCase().replace(/\s+/g, ' ');
+// Normalize a user-supplied recovery phrase:
+// - If the user pasted the full Emergency Kit text, extract the section after "Frasa Pemulihan"
+// - Strip optional numbering ("1. word", "1) word", etc.) and punctuation
+// - Lowercase and collapse whitespace
+export function normalizeRecoveryMnemonic(mnemonic: string): string {
+  let raw = mnemonic;
+  const kitMatch = raw.match(/frasa\s+pemulihan[^:\n]*:\s*([\s\S]+)/i);
+  if (kitMatch?.[1]) {
+    raw = kitMatch[1];
+  }
+  return raw
+    .toLowerCase()
+    .replace(/(?:^|\s+)\d+[\.\)\-:]?\s*/g, ' ')
+    .replace(/[^a-z\s]/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
 }
 
 // Back to entropy. Throws on a bad phrase.
 export function recoveryPhraseToEntropy(mnemonic: string): Uint8Array {
-  const normalized = normalize(mnemonic);
+  const normalized = normalizeRecoveryMnemonic(mnemonic);
   if (!validateMnemonic(normalized, wordlist)) {
-    throw new Error('Invalid recovery phrase.');
+    throw new Error('INVALID_RECOVERY');
   }
   return mnemonicToEntropy(normalized, wordlist);
 }
