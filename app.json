@@ -17,7 +17,7 @@
     },
     "android": {
       "package": "com.gembok.dev",
-      "versionCode": 21,
+      "versionCode": 22,
       "allowBackup": false,
       "blockedPermissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
@@ -70,9 +70,10 @@
         "expo-build-properties",
         {
           "android": {
-            "enableMinifyInReleaseBuilds": false,
-            "enableShrinkResourcesInReleaseBuilds": false,
-            "usesCleartextTraffic": false
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "usesCleartextTraffic": false,
+            "extraProguardRules": "-keep class com.lambdapioneer.argon2kt.** { *; }\n-keep class expo.modules.gembokcrypto.** { *; }"
           }
         }
       ]
