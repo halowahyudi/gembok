@@ -5,8 +5,10 @@ import type { VaultEntry } from './models';
 type VaultState = {
   entries: VaultEntry[];
   loaded: boolean;
+  loading: boolean;
   setEntries: (entries: VaultEntry[]) => void;
   setLoaded: (loaded: boolean) => void;
+  setLoading: (loading: boolean) => void;
   upsert: (entry: VaultEntry) => void;
   remove: (itemId: string) => void;
   clear: () => void;
@@ -15,8 +17,10 @@ type VaultState = {
 export const useVaultStore = create<VaultState>((set) => ({
   entries: [],
   loaded: false,
+  loading: false,
   setEntries: (entries) => set({ entries }),
   setLoaded: (loaded) => set({ loaded }),
+  setLoading: (loading) => set({ loading }),
   upsert: (entry) =>
     set((state) => {
       const index = state.entries.findIndex((e) => e.item.id === entry.item.id);
@@ -27,5 +31,5 @@ export const useVaultStore = create<VaultState>((set) => ({
     }),
   remove: (itemId) =>
     set((state) => ({ entries: state.entries.filter((e) => e.item.id !== itemId) })),
-  clear: () => set({ entries: [], loaded: false }),
+  clear: () => set({ entries: [], loaded: false, loading: false }),
 }));

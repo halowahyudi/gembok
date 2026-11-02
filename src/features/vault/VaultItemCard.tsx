@@ -48,6 +48,9 @@ export function VaultItemCard({
             color={theme.colors[ITEM_TYPE_COLOR[item.type]]}
           />
           <NeoText variant="subtitle">{item.title}</NeoText>
+          {secondary ? (
+            <NeoText color={theme.colors.muted}>{secondary}</NeoText>
+          ) : null}
           {isTotp ? (
             <TotpCode
               secret={item.totpSecret}
@@ -55,8 +58,6 @@ export function VaultItemCard({
               digits={item.totpDigits}
               period={item.totpPeriod}
             />
-          ) : secondary ? (
-            <NeoText color={theme.colors.muted}>{secondary}</NeoText>
           ) : null}
           {copied ? (
             <NeoText variant="caption" color={theme.colors.success}>

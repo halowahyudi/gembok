@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { FlatList, View } from 'react-native';
+import { ActivityIndicator, FlatList, RefreshControl, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { markRecoveryNudged, shouldShowRecoveryNudge } from '@/device/recovery-nudge';
@@ -16,10 +16,12 @@ export default function AuthenticatorTab() {
   const theme = useTheme();
   const router = useRouter();
   const entries = useVaultStore((s) => s.entries);
-  const { error } = useVaultLoader();
+  const { loading, loaded, error, refresh } = useVaultLoader();
   const [query, setQuery] = useState('');
   const recoveryEnabled = useSessionStore((s) => s.recoveryEnabled);
   const [showNudge, setShowNudge] = useState(false);
+
+  const isLoading = (!loaded && !error) || (loading && entries.length === 0);
 
   useEffect(() => {
     if (recoveryEnabled) return;
@@ -111,16 +113,66 @@ export default function AuthenticatorTab() {
           style={{ flex: 1 }}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ paddingBottom: theme.spacing.lg }}
+          refreshControl={
+            <RefreshControl
+              refreshing={loading && loaded}
+              onRefresh={refresh}
+              colors={[theme.colors.ink]}
+              tintColor={theme.colors.ink}
+            />
+          }
           ListEmptyComponent={
-            <NeoCard>
-              <View style={{ gap: 8 }}>
-                <NeoTag label="KOSONG" color={theme.colors.red} />
-                <NeoText variant="title">Belum ada kode 2FA</NeoText>
-                <NeoText>
-                  Tekan tombol Authenticator untuk menambah dari QR atau manual.
-                </NeoText>
-              </View>
-            </NeoCard>
+            isLoading ? (
+              <NeoCard>
+                <View
+                  style={{
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    paddingVertical: theme.spacing.xl,
+                    gap: theme.spacing.md,
+                  }}
+                >
+                  <ActivityIndicator size="large" color={theme.colors.ink} />
+                  <View style={{ alignItems: 'center', gap: 4 }}>
+                    <NeoText variant="subtitle">Memuat data...</NeoText>
+                    <NeoText variant="caption" color={theme.colors.muted}>
+                      Mengambil data dari server
+                    </NeoText>
+                  </View>
+                </View>
+              </NeoCard>
+            ) : error ? (
+              <NeoCard>
+                <View style={{ gap: 8 }}>
+                  <NeoTag label="GAGAL" color={theme.colors.red} />
+                  <NeoText variant="title">Tidak dapat memuat data</NeoText>
+                  <NeoText color={theme.colors.muted}>
+                    Tarik ke bawah atau tekan tombol untuk mencoba lagi.
+                  </NeoText>
+                  <NeoButton title="Coba lagi" variant="surface" onPress={refresh} />
+                </View>
+              </NeoCard>
+            ) : query.trim() ? (
+              <NeoCard>
+                <View style={{ gap: 8 }}>
+                  <NeoTag label="TIDAK DITEMUKAN" color={theme.colors.primary} />
+                  <NeoText variant="title">Tidak ada hasil</NeoText>
+                  <NeoText color={theme.colors.muted}>
+                    Tidak ada akun yang cocok dengan &quot;{query}&quot;.
+                  </NeoText>
+                </View>
+              </NeoCard>
+            ) : (
+              <NeoCard>
+                <View style={{ gap: 8 }}>
+                  <NeoTag label="KOSONG" color={theme.colors.red} />
+                  <NeoText variant="title">Belum ada kode 2FA</NeoText>
+                  <NeoText>
+                    Tekan tombol Authenticator untuk menambah dari QR atau manual.
+                  </NeoText>
+                </View>
+              </NeoCard>
+            )
           }
         />
       </View>
