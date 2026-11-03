@@ -17,7 +17,7 @@
     },
     "android": {
       "package": "com.gembok.dev",
-      "versionCode": 23,
+      "versionCode": 24,
       "allowBackup": false,
       "blockedPermissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
@@ -76,7 +76,8 @@
             "extraProguardRules": "-keep class com.lambdapioneer.argon2kt.** { *; }\n-keep class expo.modules.gembokcrypto.** { *; }"
           }
         }
-      ]
+      ],
+      "./plugins/withR8Optimizations"
     ],
     "experiments": {
       "typedRoutes": true
