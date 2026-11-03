@@ -17,7 +17,7 @@
     },
     "android": {
       "package": "com.gembok.dev",
-      "versionCode": 24,
+      "versionCode": 23,
       "allowBackup": false,
       "blockedPermissions": [
         "android.permission.READ_EXTERNAL_STORAGE",

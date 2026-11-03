@@ -4,13 +4,26 @@ const {
   AndroidConfig,
 } = require('@expo/config-plugins');
 
+let patchScript;
+try {
+  patchScript = require('../scripts/patch-bitmap-downsampling');
+} catch {}
+
 /**
  * Expo Config Plugin to enable full R8 code optimization and optimized resource shrinking.
  *
  * 1. Replaces default `proguard-android.txt` (which has `-dontoptimize`) with `proguard-android-optimize.txt`.
  * 2. Adds `android.r8.optimizedResourceShrinking=true` to `gradle.properties`.
+ * 3. Ensures BitmapFactory calls in native dependencies use BitmapFactory.Options and downsampling.
  */
 function withR8Optimizations(config) {
+  // Ensure bitmap downsampling patch is applied before build
+  if (patchScript?.run) {
+    try {
+      patchScript.run();
+    } catch {}
+  }
+
   // 1. In app/build.gradle: use proguard-android-optimize.txt
   config = withAppBuildGradle(config, (modConfig) => {
     if (modConfig.modResults.language === 'groovy') {
