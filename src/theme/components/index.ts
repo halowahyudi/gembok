@@ -12,6 +12,8 @@ export { NeoCheckbox } from './NeoCheckbox';
 export type { NeoCheckboxProps } from './NeoCheckbox';
 export { NeoModal } from './NeoModal';
 export type { NeoModalProps } from './NeoModal';
+export { NeoConfirmModal } from './NeoConfirmModal';
+export type { NeoConfirmModalProps } from './NeoConfirmModal';
 export { NeoLoadingOverlay } from './NeoLoadingOverlay';
 export type { NeoLoadingOverlayProps } from './NeoLoadingOverlay';
 export { NeoNotice } from './NeoNotice';

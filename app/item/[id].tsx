@@ -7,7 +7,7 @@ import { AuthenticatorForm } from '@/features/totp/AuthenticatorForm';
 import { ItemForm } from '@/features/vault/ItemForm';
 import { ITEM_TYPE_LABEL } from '@/features/vault/itemTypes';
 import { useSessionStore } from '@/store/session';
-import { NeoButton, NeoCard, NeoScreen, NeoText, useTheme } from '@/theme';
+import { NeoButton, NeoCard, NeoConfirmModal, NeoScreen, NeoText, useTheme } from '@/theme';
 import { buildItem, type VaultItemDraft } from '@/vault/models';
 import { supabaseVaultRepository } from '@/vault/repository';
 import { useVaultStore } from '@/vault/store';
@@ -24,6 +24,7 @@ export default function ItemDetail() {
 
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (!entry) {
@@ -62,9 +63,14 @@ export default function ItemDetail() {
     }
   };
 
-  const onDelete = async () => {
+  const onRequestDelete = () => {
+    setShowConfirmDelete(true);
+  };
+
+  const onConfirmDelete = async () => {
     if (!userId) {
       setError('Sesi tidak aktif. Buka brankas ulang.');
+      setShowConfirmDelete(false);
       return;
     }
     setDeleting(true);
@@ -72,8 +78,10 @@ export default function ItemDetail() {
     try {
       await supabaseVaultRepository.remove({ userId, itemId: entry.item.id });
       remove(entry.item.id);
+      setShowConfirmDelete(false);
       router.back();
     } catch (e) {
+      setShowConfirmDelete(false);
       setError(vaultErrorMessage(e));
     } finally {
       setDeleting(false);
@@ -95,7 +103,7 @@ export default function ItemDetail() {
           deleting={deleting}
           error={error}
           onSubmit={submit}
-          onDelete={onDelete}
+          onDelete={onRequestDelete}
         />
       ) : (
         <ItemForm
@@ -106,9 +114,25 @@ export default function ItemDetail() {
           deleting={deleting}
           error={error}
           onSubmit={submit}
-          onDelete={onDelete}
+          onDelete={onRequestDelete}
         />
       )}
+
+      <NeoConfirmModal
+        visible={showConfirmDelete}
+        title="Hapus data ini?"
+        message={
+          entry.item.title
+            ? `"${entry.item.title}" akan dihapus permanen dari brankas Anda. Tindakan ini tidak bisa dibatalkan.`
+            : 'Data ini akan dihapus permanen dari brankas Anda. Tindakan ini tidak bisa dibatalkan.'
+        }
+        confirmLabel="Hapus"
+        cancelLabel="Batal"
+        confirmVariant="danger"
+        loading={deleting}
+        onConfirm={onConfirmDelete}
+        onCancel={() => setShowConfirmDelete(false)}
+      />
 
       <NeoButton
         title="Kembali"

@@ -14,9 +14,9 @@ import {
   NeoButton,
   NeoCard,
   NeoCheckbox,
+  NeoConfirmModal,
   NeoInput,
   NeoLoadingOverlay,
-  NeoModal,
   NeoNotice,
   NeoScreen,
   NeoText,
@@ -181,31 +181,17 @@ export default function ChangePasswordScreen() {
         </>
       )}
 
-      <NeoModal
+      <NeoConfirmModal
         visible={showConfirm}
-        onRequestClose={() => setShowConfirm(false)}
+        title="Yakin ingin mengganti kata sandi?"
+        message={`Setelah ini, Kunci Keamanan ${newSecretKey ? 'lama tidak bisa dipakai lagi' : 'tetap sama, tapi disarankan menyimpannya kembali'}. Pastikan Anda sudah mencatat yang benar.`}
+        confirmLabel="Lanjutkan"
+        cancelLabel="Batal"
+        confirmVariant="primary"
         accent={theme.colors.danger}
-      >
-        <View style={{ padding: theme.spacing.lg, gap: theme.spacing.lg }}>
-          <NeoText variant="title">Yakin ingin mengganti kata sandi?</NeoText>
-          <NeoText>
-            Setelah ini, Kunci Keamanan {newSecretKey ? 'lama tidak bisa dipakai lagi' : 'tetap sama, tapi disarankan menyimpannya kembali'}. Pastikan Anda sudah mencatat yang benar.
-          </NeoText>
-          <View style={{ flexDirection: 'row', gap: theme.spacing.md }}>
-            <NeoButton
-              title="Batal"
-              variant="surface"
-              style={{ flex: 1 }}
-              onPress={() => setShowConfirm(false)}
-            />
-            <NeoButton
-              title="Lanjutkan"
-              style={{ flex: 1 }}
-              onPress={confirmSubmit}
-            />
-          </View>
-        </View>
-      </NeoModal>
+        onConfirm={confirmSubmit}
+        onCancel={() => setShowConfirm(false)}
+      />
 
       <NeoLoadingOverlay visible={busy} message="Memperbarui kata sandi..." />
     </NeoScreen>
